@@ -42,6 +42,7 @@ def main():
     # 5. Summary & Export
     summary = {
         trans['accumulations']: accumulation_count,
+        "Amplituda": f"{res['amplitude_pp']:.4f}", # Dodane pole
         trans['g_factor']: round(g_factor, 6),
         trans['resonance_field']: f"{res['b_resonance']:.4f} mT",
         trans['integral_intensity']: f"{res['integral_intensity']:.4f}"
@@ -57,11 +58,11 @@ def main():
         print(f"{key}: {val}")
 
     # 6. Saving
-    results_dir = os.path.join(os.getcwd(), 'results')
-    os.makedirs(results_dir, exist_ok=True)
-    full_plot_path = os.path.join(results_dir, save_filename)
+    plots_dir = os.path.join(os.getcwd(), 'plots') # Zmieniono na 'plots'
+    os.makedirs(plots_dir, exist_ok=True)
+    full_plot_path = os.path.join(plots_dir, save_filename) # Ścieżka do zapisu wykresu
 
-    report_file = save_report(save_filename, summary, trans)
+    report_file = save_report(save_filename, summary, trans) # Raport nadal zapisuje się w 'results'
     create_plot(b_field, res['y_analyzed'], res['peaks_b'], res['peaks_y'],
                 res['line_count'], res['idx_max'], res['idx_min'],
                 plot_title, full_plot_path, trans, meta['smoothing_points'])

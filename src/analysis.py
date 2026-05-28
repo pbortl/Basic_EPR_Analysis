@@ -17,6 +17,7 @@ def analyze_spectrum(b_field, y_values, accumulation_count, expected_lines, smoo
 
     idx_max, idx_min = np.argmax(y_analyzed), np.argmin(y_analyzed)
     delta_b_pp = abs(b_field[idx_min] - b_field[idx_max])
+    amplitude_pp = abs(y_analyzed[idx_max] - y_analyzed[idx_min]) # Dodane wyliczenie amplitudy
 
     line_count, coupling_a, peaks_b, peaks_y = 1, 0.0, [], []
 
@@ -53,6 +54,7 @@ def analyze_spectrum(b_field, y_values, accumulation_count, expected_lines, smoo
         "line_count": line_count,
         "coupling_a": coupling_a,
         "delta_b_pp": delta_b_pp,
+        "amplitude_pp": amplitude_pp,
         "integral_intensity": integral_intensity,
         "peaks_b": peaks_b,
         "peaks_y": peaks_y,
