@@ -4,7 +4,7 @@ import re
 import os
 import numpy as np
 from src.data_loader import load_epr_data
-from src.analysis import analyze_spectrum, calculate_g_factor
+from src.analysis import analyze_spectrum # Usunięto calculate_g_factor, bo jest w analyze_spectrum
 
 # === STAŁE FIZYCZNE I PARAMETRY ===
 PLANCK_H = 6.62607e-34  # [J*s]
@@ -14,7 +14,11 @@ T_A = 0.05    # Tolerancja dla stałej sprzężenia [mT]
 
 
 def load_database(zip_filename="spintrap_data (1).zip"):
-
+    """
+    Ładuje bazę danych pułapek spinowych z archiwum ZIP.
+    Źródło: NIEHS (National Institute of Environmental Health Sciences)
+    https://www.niehs.nih.gov/research/resources/databases/spintrap
+    """
     possible_paths = [zip_filename, os.path.join('data', zip_filename)]
     zip_path = None
 
@@ -33,6 +37,7 @@ def load_database(zip_filename="spintrap_data (1).zip"):
                 df = pd.read_csv(f, encoding='utf-8')
                 df['SPINTRAP'] = df['SPINTRAP'].astype(str).str.strip()
                 df['RADICAL'] = df['RADICAL'].astype(str).str.strip()
+                print(f"Baza danych pułapek spinowych NIEHS załadowana pomyślnie z '{zip_path}'.")
                 return df
     except Exception as e:
         print(f"\n[BŁĄD KRYTYCZNY] Błąd odczytu archiwum: {e}")
@@ -153,8 +158,10 @@ def action_batch_verify(df):
     radical = input("Podaj nazwę rodnika dla wszystkich plików (np. .OH): ").strip()
     try:
         freq_ghz = float(input("Podaj częstotliwość spektrometru [GHz] dla wszystkich plików (np. 9.4): "))
+        u_freq_input = input("Podaj niepewność częstotliwości [GHz] (np. 0.0001, Enter dla 0.0): ")
+        u_frequency_ghz = float(u_freq_input.replace(',', '.')) if u_freq_input.strip() else 0.0
     except ValueError:
-        print("[BŁĄD] Niepoprawny format częstotliwości.")
+        print("[BŁĄD] Niepoprawny format częstotliwości lub jej niepewności.")
         return
 
     match = df[(df['SPINTRAP'].str.upper() == spintrap.upper()) &
@@ -186,16 +193,22 @@ def action_batch_verify(df):
                 if smoothing_points % 2 == 0: smoothing_points += 1
                 if smoothing_points < 3: smoothing_points = 3
 
-                res = analyze_spectrum(b_field, y_values, accumulation_count, expected_lines=None, smoothing_points=smoothing_points)
-                exp_g = calculate_g_factor(res['b_resonance'], freq_ghz)
+                # Przekazanie frequency_ghz i u_frequency_ghz do analyze_spectrum
+                res = analyze_spectrum(b_field, y_values, accumulation_count, expected_lines=None, 
+                                       smoothing_points=smoothing_points, frequency_ghz=freq_ghz, u_frequency_ghz=u_frequency_ghz)
+                
+                exp_g = res['g_factor']
+                exp_u_g = res['u_g_factor']
                 exp_an = res['coupling_a'] if res['line_count'] > 1 else None
                 exp_ah = None
                 exp_delta_b_pp = res['delta_b_pp']
+                exp_u_delta_b_pp = res['u_delta_b_pp']
                 exp_amplitude_pp = res['amplitude_pp']
+                exp_u_amplitude_pp = res['u_amplitude_pp']
                 exp_integral_intensity = res['integral_intensity']
 
 
-                print(f"  - Czynnik g (zmierzony): {exp_g:.4f}")
+                print(f"  - Czynnik g (zmierzony): {exp_g:.4f} +/- {exp_u_g:.4f}")
                 if g_ref:
                     delta_g = abs(exp_g - g_ref)
                     status = "[OK]" if delta_g <= T_G else "[BŁĄD]"
@@ -219,9 +232,16 @@ def action_batch_verify(df):
                 elif ah_ref_mT:
                     print(f"  - Stała AH (referencyjna): {ah_ref_mT:.2f} mT (Brak zmierzonej)")
 
-                print(f"  - Szerokość linii (zmierzona): {exp_delta_b_pp:.4f} mT")
-                print(f"  - Amplituda (zmierzona): {exp_amplitude_pp:.4f}")
-                print(f"  - Intensywność integralna (zmierzona): {exp_integral_intensity:.4f}")
+                if res['line_count'] > 1:
+                    print(f"  - Szerokość linii (pojedyncza): {exp_delta_b_pp:.4f} +/- {exp_u_delta_b_pp:.4f} mT")
+                    print(f"  - Amplituda (pojedyncza): {exp_amplitude_pp:.4f} +/- {exp_u_amplitude_pp:.4f}")
+                    print(f"  - Szerokość linii (globalna): {res['global_delta_b_pp']:.4f} mT")
+                    print(f"  - Amplituda (globalna): {res['global_amplitude_pp']:.4f}")
+                else:
+                    print(f"  - Szerokość linii: {exp_delta_b_pp:.4f} +/- {exp_u_delta_b_pp:.4f} mT")
+                    print(f"  - Amplituda: {exp_amplitude_pp:.4f} +/- {exp_u_amplitude_pp:.4f}")
+
+                print(f"  - Intensywność integralna: {exp_integral_intensity:.4f}")
 
 
             except Exception as e:
