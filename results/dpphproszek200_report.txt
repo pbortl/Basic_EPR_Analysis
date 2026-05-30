@@ -1,6 +1,0 @@
---- ZESTAWIENIE WYNIKÓW ---
-Liczba akumulacji: 1
-Czynnik spektroskopowy g: 2.005046
-Pole rezonansowe B_r: 337.5644 mT
-Intensywność integralna: 269.4726
-Szerokość linii d_B_pp: 0.1652 mT
